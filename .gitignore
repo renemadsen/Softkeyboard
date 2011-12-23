@@ -1,0 +1,9 @@
+.metadata
+*.class
+*.jar
+*.apk
+.classpath
+/target
+/gen
+/bin
+*~
