@@ -1,21 +1,7 @@
-/*
- * Copyright (C) 2008-2009 Google Inc.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- */
 
 package dk.microting.softkeyboard;
 
+import android.R.attr;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -28,6 +14,7 @@ import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.Keyboard.Key;
 import android.inputmethodservice.KeyboardView;
 import android.os.Handler;
+import android.text.InputType;
 import android.text.method.MetaKeyKeyListener;
 import android.util.Log;
 import android.view.KeyCharacterMap;
@@ -63,7 +50,7 @@ public class SoftKeyboard extends InputMethodService
      * a QWERTY keyboard to Chinese), but may not be used for input methods
      * that are primarily intended to be used for on-screen text entry.
      */
-    static final boolean PROCESS_HARD_KEYS = true;
+    static final boolean PROCESS_HARD_KEYS = false;
     
     private KeyboardView mInputView;
     private CandidateView mCandidateView;
@@ -94,7 +81,9 @@ public class SoftKeyboard extends InputMethodService
 	private Key scannerKey;
 	private Handler handler;
 	
-	private static final UUID MY_UUID_SECURE = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+	private BroadcastReceiver mBTBroadCastReceiver;
+	
+	private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //UUID for generic SPP connections
     
     private String TAG = "SoftKeyboard";
     
@@ -125,7 +114,7 @@ public class SoftKeyboard extends InputMethodService
 		mBTFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
 		mBTFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
 		
-		BroadcastReceiver mBTBroadCastReceiver = new BroadcastReceiver() {
+		mBTBroadCastReceiver = new BroadcastReceiver() {
 			@Override
 			public void onReceive(Context context, Intent intent) {
 				handleEvent(intent);
@@ -151,10 +140,8 @@ public class SoftKeyboard extends InputMethodService
 				{
 					if(k != null)
 					{
-						Log.d(TAG, "We have a key");
 						if(k.codes != null)
 						{
-							Log.d(TAG, "" + k.codes[0]);
 							if(k.codes[0] == 0)
 							{
 								scannerKey = k;
@@ -239,6 +226,9 @@ public class SoftKeyboard extends InputMethodService
     	Log.d(TAG, "onStartInput");
         super.onStartInput(attribute, restarting);
         
+        Log.d(TAG, "inputType: " + (attribute.inputType & InputType.TYPE_MASK_CLASS));
+        Log.d(TAG, "imeOptions: " + (attr.imeOptions & EditorInfo.IME_MASK_ACTION));
+        
         // Reset our state.  We want to do this even if restarting, because
         // the underlying state of the text editor could have changed in any way.
         mComposing.setLength(0);
@@ -255,7 +245,7 @@ public class SoftKeyboard extends InputMethodService
         
         // We are now going to initialize our state based on the type of
         // text being edited.
-        switch (attribute.inputType&EditorInfo.TYPE_MASK_CLASS) {
+        switch (attribute.inputType & EditorInfo.TYPE_MASK_CLASS) {
             case EditorInfo.TYPE_CLASS_NUMBER:
             case EditorInfo.TYPE_CLASS_DATETIME:
                 // Numbers and dates default to the symbols keyboard, with
@@ -275,7 +265,7 @@ public class SoftKeyboard extends InputMethodService
                 // be doing predictive text (showing candidates as the
                 // user types).
                 mCurKeyboard = mQwertyKeyboard;
-                mPredictionOn = false;
+//                mPredictionOn = false;
                 
                 // We now look for a few special variations of text that will
                 // modify our behavior.
@@ -284,7 +274,7 @@ public class SoftKeyboard extends InputMethodService
                         variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
                     // Do not display predictions / what the user is typing
                     // when they are entering a password.
-                    mPredictionOn = false;
+//                    mPredictionOn = false;
                 }
                 
                 if (variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS 
@@ -292,7 +282,7 @@ public class SoftKeyboard extends InputMethodService
                         || variation == EditorInfo.TYPE_TEXT_VARIATION_FILTER) {
                     // Our predictions are not useful for e-mail addresses
                     // or URIs.
-                    mPredictionOn = false;
+//                    mPredictionOn = false;
                 }
                 
                 if ((attribute.inputType&EditorInfo.TYPE_TEXT_FLAG_AUTO_COMPLETE) != 0) {
@@ -301,8 +291,8 @@ public class SoftKeyboard extends InputMethodService
                     // to supply their own.  We only show the editor's
                     // candidates when in fullscreen mode, otherwise relying
                     // own it displaying its own UI.
-                    mPredictionOn = false;
-                    mCompletionOn = isFullscreenMode();
+//                    mPredictionOn = false;
+//                    mCompletionOn = isFullscreenMode();
                 }
                 
                 // We also want to look at the current state of the editor
@@ -578,9 +568,14 @@ public class SoftKeyboard extends InputMethodService
      */
     private void keyDownUp(int keyEventCode) {
     	Log.d(TAG, "keyDownUp");
-        getCurrentInputConnection().sendKeyEvent(
+    	
+    	InputConnection ic = getCurrentInputConnection();
+		if(ic == null)
+			return;
+    	
+		ic.sendKeyEvent(
                 new KeyEvent(KeyEvent.ACTION_DOWN, keyEventCode));
-        getCurrentInputConnection().sendKeyEvent(
+		ic.sendKeyEvent(
                 new KeyEvent(KeyEvent.ACTION_UP, keyEventCode));
     }
     
@@ -592,12 +587,17 @@ public class SoftKeyboard extends InputMethodService
         switch (keyCode) {
             case '\n':
                 keyDownUp(KeyEvent.KEYCODE_ENTER);
+                Log.d(TAG, "Sending enter key");
                 break;
             default:
                 if (keyCode >= '0' && keyCode <= '9') {
                     keyDownUp(keyCode - '0' + KeyEvent.KEYCODE_0);
                 } else {
-                    getCurrentInputConnection().commitText(String.valueOf((char) keyCode), 1);
+                	InputConnection ic = getCurrentInputConnection();
+            		if(ic == null)
+            			return;
+                	
+                    ic.commitText(String.valueOf((char) keyCode), 1);
                 }
                 break;
         }
@@ -610,7 +610,12 @@ public class SoftKeyboard extends InputMethodService
         if (isWordSeparator(primaryCode)) {
             // Handle separator
             if (mComposing.length() > 0) {
-                commitTyped(getCurrentInputConnection());
+            	
+            	InputConnection ic = getCurrentInputConnection();
+        		if(ic == null)
+        			return;
+            	
+                commitTyped(ic);
             }
             sendKey(primaryCode);
             updateShiftKeyState(getCurrentInputEditorInfo());
@@ -704,13 +709,20 @@ public class SoftKeyboard extends InputMethodService
     private void handleBackspace() {
     	Log.d(TAG, "handleBackspace");
         final int length = mComposing.length();
+        
+        InputConnection ic = getCurrentInputConnection();
+		if(ic == null)
+			return;
+        
         if (length > 1) {
             mComposing.delete(length - 1, length);
-            getCurrentInputConnection().setComposingText(mComposing, 1);
+//            ic.setComposingText(mComposing, 1);
+            ic.commitText(mComposing, 1);
+            mComposing.setLength(0);
             updateCandidates();
         } else if (length > 0) {
             mComposing.setLength(0);
-            getCurrentInputConnection().commitText("", 0);
+            ic.commitText("", 0);
             updateCandidates();
         } else {
             keyDownUp(KeyEvent.KEYCODE_DEL);
@@ -742,6 +754,11 @@ public class SoftKeyboard extends InputMethodService
     
     private void handleCharacter(int primaryCode, int[] keyCodes) {
     	Log.d(TAG, "handleCharacter");
+    	
+    	InputConnection ic = getCurrentInputConnection();
+		if(ic == null)
+			return;
+    	
         if (isInputViewShown()) {
             if (mInputView.isShifted()) {
                 primaryCode = Character.toUpperCase(primaryCode);
@@ -749,7 +766,9 @@ public class SoftKeyboard extends InputMethodService
         }
 //        if (isAlphabet(primaryCode) && mPredictionOn) {
             mComposing.append((char) primaryCode);
-            getCurrentInputConnection().setComposingText(mComposing, 1);
+//            ic.setComposingText(mComposing, 1);
+            ic.commitText(mComposing, 1);
+            mComposing.setLength(0);
             updateShiftKeyState(getCurrentInputEditorInfo());
             updateCandidates();
 //        } else {
@@ -760,7 +779,12 @@ public class SoftKeyboard extends InputMethodService
 
     private void handleClose() {
     	Log.d(TAG, "handleClose");
-        commitTyped(getCurrentInputConnection());
+    	
+    	InputConnection ic = getCurrentInputConnection();
+		if(ic == null)
+			return;
+    	
+        commitTyped(ic);
         requestHideSelf(0);
         mInputView.closing();
     }
@@ -838,6 +862,11 @@ public class SoftKeyboard extends InputMethodService
     public void onRelease(int primaryCode) {
     	Log.d(TAG, "onRelease");
     }
+    
+    @Override
+    public void onDestroy() {
+    	unregisterReceiver(mBTBroadCastReceiver);
+    }
 
 	@Override
 	public void barcodeCallBack(final String barcode) {
@@ -845,14 +874,16 @@ public class SoftKeyboard extends InputMethodService
 			@Override
 			public void run() {
 				try {
-				String bar = barcode.replaceAll("\\r\\n|\\n|\\r", "");
-				
-				Log.d(TAG, "barcodeCallBack" + " (" + bar + ")");
-				
-				InputConnection ic = getCurrentInputConnection();
-				
-				ic.commitText(bar, bar.length());
-				ic = null;
+					InputConnection ic = getCurrentInputConnection();
+					if(ic == null)
+						return;
+						
+					String bar = barcode.replaceAll("\\r\\n|\\n|\\r", "");
+					
+					Log.d(TAG, "barcodeCallBack" + " (" + bar + ")");
+					
+					ic.commitText(bar, bar.length());
+					ic = null;
 				} catch (Exception e) {
 					Log.d(TAG, e.getMessage());
 					e.printStackTrace();
@@ -894,7 +925,7 @@ public class SoftKeyboard extends InputMethodService
 			
 	        for(BluetoothDevice bd : pairedDevices)
 	        {
-	        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID_SECURE);
+	        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID);
 	        	scannerThread = new ConnectedThread(scanner, SoftKeyboard.this);
 	        	scannerThread.start();
 	        	scannerConnected = true;
@@ -904,6 +935,26 @@ public class SoftKeyboard extends InputMethodService
 				scannerKey.icon = getResources().getDrawable(R.drawable.scanner);
 				mInputView.invalidate();
 				mInputView.invalidateAllKeys();
+			} else {
+				if(mCurKeyboard != null)
+				{
+					for(Key k : mCurKeyboard.getKeys())
+					{
+						if(k != null)
+						{
+							if(k.codes != null)
+							{
+								if(k.codes[0] == 0)
+								{
+									scannerKey = k;
+									scannerKey.icon = getResources().getDrawable(R.drawable.scanner);
+									mInputView.invalidate();
+									mInputView.invalidateAllKeys();
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
