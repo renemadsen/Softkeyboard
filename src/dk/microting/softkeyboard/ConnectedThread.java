@@ -18,7 +18,7 @@ public class ConnectedThread extends Thread {
 	private final BarcodeCallback bcb;
 	
 	
-	private String gotten = "";
+	private String receivedChars = "";
 	private Timer timerToSent;
 	private boolean timerIsRunning = false;
 	
@@ -66,9 +66,9 @@ public class ConnectedThread extends Thread {
 				bytes = mmInStream.read(buffer);
 				
 				for(int i = 0; i < bytes; i++)
-					gotten += (char)buffer[i];
+					receivedChars += (char)buffer[i];
 				
-				Log.d(TAG, "Received: " + gotten);
+				Log.d(TAG, "Received: " + receivedChars);
 				
 				if(bcb != null)
 				{
@@ -76,10 +76,10 @@ public class ConnectedThread extends Thread {
 					{
 						timerIsRunning = true;
 						timerToSent.schedule(new TimerTask() {
-							
 							@Override
 							public void run() {
 								callback();
+								timerIsRunning = false;
 							}
 						}, 200);
 					}
@@ -104,10 +104,7 @@ public class ConnectedThread extends Thread {
 	
 	private void callback()
 	{
-		
-		bcb.barcodeCallBack(gotten);
-		gotten = "";
-		if(timerIsRunning)
-			timerIsRunning = false;
+		bcb.barcodeCallBack(receivedChars);
+		receivedChars = "";
 	}
 }

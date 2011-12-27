@@ -27,6 +27,7 @@ import android.inputmethodservice.InputMethodService;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.Keyboard.Key;
 import android.inputmethodservice.KeyboardView;
+import android.os.Handler;
 import android.text.method.MetaKeyKeyListener;
 import android.util.Log;
 import android.view.KeyCharacterMap;
@@ -35,7 +36,6 @@ import android.view.View;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -92,6 +92,7 @@ public class SoftKeyboard extends InputMethodService
 	private BluetoothSocket scanner;
 	private ConnectedThread scannerThread;
 	private Key scannerKey;
+	private Handler handler;
 	
 	private static final UUID MY_UUID_SECURE = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     
@@ -104,6 +105,7 @@ public class SoftKeyboard extends InputMethodService
     @Override public void onCreate() {
     	Log.d(TAG, "onCreate");
         super.onCreate();
+        handler = new Handler();
         mWordSeparators = getResources().getString(R.string.word_separators);
         
         this.btAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -356,7 +358,7 @@ public class SoftKeyboard extends InputMethodService
 		} catch (Exception e) {
 			Log.d(TAG, e.getMessage());
 			e.printStackTrace();
-			Toast.makeText(this, "Failed to connect to scanner", Toast.LENGTH_LONG).show();
+			Log.d(TAG, "Failed to connect to scanner");
 		}
     }
     
@@ -634,6 +636,7 @@ public class SoftKeyboard extends InputMethodService
                 current.setShifted(false);
             }
         } else if(primaryCode == 0 && !scannerConnected) { 
+        	checkConnection();
         	try {
 				connectToScanner();
 			} catch (Exception e) {
@@ -641,10 +644,14 @@ public class SoftKeyboard extends InputMethodService
 				e.printStackTrace();
 			}
         } else if(primaryCode == 0 && scannerConnected) {
+        	checkConnection();
         	if(mInputView != null) {
         		mInputView.invalidateAllKeys();
         		mInputView.invalidate();
         	}
+        	
+        	scannerThread.cancel();
+        	
         }else {
             handleCharacter(primaryCode, keyCodes);
         }
@@ -833,21 +840,44 @@ public class SoftKeyboard extends InputMethodService
     }
 
 	@Override
-	public void barcodeCallBack(String barcode) {
-		
-		barcode = barcode.replaceAll("\\r\\n|\\n|\\r", "");
-		
-		Log.d(TAG, "barcodeCallBack" + " (" + barcode + ")");
-		
-		InputConnection ic = getCurrentInputConnection();
-		
-		ic.commitText(barcode, barcode.length());
+	public void barcodeCallBack(final String barcode) {
+		handler.post(new Runnable() {
+			@Override
+			public void run() {
+				try {
+				String bar = barcode.replaceAll("\\r\\n|\\n|\\r", "");
+				
+				Log.d(TAG, "barcodeCallBack" + " (" + bar + ")");
+				
+				InputConnection ic = getCurrentInputConnection();
+				
+				ic.commitText(bar, bar.length());
+				ic = null;
+				} catch (Exception e) {
+					Log.d(TAG, e.getMessage());
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 
 	@Override
 	public void barcodeScannerDisconnect() {
 		Log.d(TAG, "barcodeScannerDisconnect");
 		scannerConnected = false;
+		
+		handler.post(new Runnable() {
+			@Override
+			public void run() {
+				Log.d(TAG, "Running the handler");
+				if(scannerKey != null) {
+					scannerKey.icon = getResources().getDrawable(R.drawable.scanner_disconnected);
+					mInputView.invalidate();
+					mInputView.invalidateAllKeys();
+				}
+			}
+		});
+		
 	}
 	
 	@Override
@@ -859,6 +889,9 @@ public class SoftKeyboard extends InputMethodService
 	{
 		if(!scannerConnected)
 		{
+			if(this.btAdapter.isDiscovering())
+				this.btAdapter.cancelDiscovery();
+			
 	        for(BluetoothDevice bd : pairedDevices)
 	        {
 	        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID_SECURE);
@@ -866,6 +899,48 @@ public class SoftKeyboard extends InputMethodService
 	        	scannerThread.start();
 	        	scannerConnected = true;
 	        }
+		} else {
+			if(scannerKey != null) {
+				scannerKey.icon = getResources().getDrawable(R.drawable.scanner);
+				mInputView.invalidate();
+				mInputView.invalidateAllKeys();
+			}
 		}
+	}
+	
+	public boolean checkConnection()
+	{
+		for(BluetoothDevice bd : btAdapter.getBondedDevices())
+		{
+			if(bd.getName().toLowerCase().startsWith("cs3070"))
+			{
+				Log.d(TAG, "We have a scanner!");
+				if(scannerThread != null)
+				{
+					if(scannerThread.isAlive())
+						Log.d(TAG, "We have an active connection!");
+					else
+					{
+						Log.d(TAG, "The thread is dead!");
+						scannerConnected = false;
+						if(scannerKey != null) {
+							scannerKey.icon = getResources().getDrawable(R.drawable.scanner_disconnected);
+							mInputView.invalidate();
+							mInputView.invalidateAllKeys();
+						}
+					}
+				} else {
+					Log.d(TAG, "The thread is null");
+					scannerConnected = false;
+					if(scannerKey != null) {
+						scannerKey.icon = getResources().getDrawable(R.drawable.scanner_disconnected);
+						mInputView.invalidate();
+						mInputView.invalidateAllKeys();
+					}
+				}
+			}
+		}
+		
+		return true;
 	}
 }
