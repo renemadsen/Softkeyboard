@@ -105,6 +105,7 @@ public class SoftKeyboard extends InputMethodService
         
         try {
 			connectToScanner();
+			setScannerIcon(scannerConnected);
 		} catch (Exception e) {
 			Log.d(TAG, e.getMessage());
 			e.printStackTrace();
@@ -648,12 +649,13 @@ public class SoftKeyboard extends InputMethodService
 				Log.d(TAG, e.getMessage());
 				e.printStackTrace();
 			}
+			
+			setScannerIcon(scannerConnected);
+			
         } else if(primaryCode == 0 && scannerConnected) {
         	checkConnection();
-        	if(mInputView != null) {
-        		mInputView.invalidateAllKeys();
-        		mInputView.invalidate();
-        	}
+        	
+        	setScannerIcon(scannerConnected);
         	
         	scannerThread.cancel();
         	
@@ -901,11 +903,7 @@ public class SoftKeyboard extends InputMethodService
 			@Override
 			public void run() {
 				Log.d(TAG, "Running the handler");
-				if(scannerKey != null) {
-					scannerKey.icon = getResources().getDrawable(R.drawable.scanner_disconnected);
-					mInputView.invalidate();
-					mInputView.invalidateAllKeys();
-				}
+				setScannerIcon(scannerConnected);
 			}
 		});
 		
@@ -931,31 +929,7 @@ public class SoftKeyboard extends InputMethodService
 	        	scannerConnected = true;
 	        }
 		} else {
-			if(scannerKey != null) {
-				scannerKey.icon = getResources().getDrawable(R.drawable.scanner);
-				mInputView.invalidate();
-				mInputView.invalidateAllKeys();
-			} else {
-				if(mCurKeyboard != null)
-				{
-					for(Key k : mCurKeyboard.getKeys())
-					{
-						if(k != null)
-						{
-							if(k.codes != null)
-							{
-								if(k.codes[0] == 0)
-								{
-									scannerKey = k;
-									scannerKey.icon = getResources().getDrawable(R.drawable.scanner);
-									mInputView.invalidate();
-									mInputView.invalidateAllKeys();
-								}
-							}
-						}
-					}
-				}
-			}
+			setScannerIcon(true);
 		}
 	}
 	
@@ -968,30 +942,53 @@ public class SoftKeyboard extends InputMethodService
 				Log.d(TAG, "We have a scanner!");
 				if(scannerThread != null)
 				{
-					if(scannerThread.isAlive())
+					if(scannerThread.isAlive()) {
 						Log.d(TAG, "We have an active connection!");
-					else
+						scannerConnected = true;
+					} else
 					{
 						Log.d(TAG, "The thread is dead!");
 						scannerConnected = false;
-						if(scannerKey != null) {
-							scannerKey.icon = getResources().getDrawable(R.drawable.scanner_disconnected);
-							mInputView.invalidate();
-							mInputView.invalidateAllKeys();
-						}
 					}
 				} else {
 					Log.d(TAG, "The thread is null");
 					scannerConnected = false;
-					if(scannerKey != null) {
-						scannerKey.icon = getResources().getDrawable(R.drawable.scanner_disconnected);
-						mInputView.invalidate();
-						mInputView.invalidateAllKeys();
-					}
 				}
 			}
 		}
 		
+		setScannerIcon(scannerConnected);
+		
 		return true;
+	}
+	
+	public void setScannerIcon(boolean online)
+	{
+		if(scannerKey != null) {
+			Log.d(TAG, "Have the key");
+			scannerKey.icon = getResources().getDrawable(online ? R.drawable.scanner : R.drawable.scanner_disconnected);
+			mInputView.invalidate();
+			mInputView.invalidateAllKeys();
+		} else if (mCurKeyboard != null) {
+			Log.d(TAG, "Do not have the key");
+			for(Key k : mCurKeyboard.getKeys())
+			{
+				if(k != null)
+				{
+					if(k.codes != null)
+					{
+						if(k.codes[0] == 0)
+						{
+							scannerKey = k;
+							scannerKey.icon = getResources().getDrawable(online ? R.drawable.scanner : R.drawable.scanner_disconnected);
+							mInputView.invalidate();
+							mInputView.invalidateAllKeys();
+						}
+					}
+				}
+			}
+		} else {
+			Log.d(TAG, "Shouldn't do anything");
+		}
 	}
 }
