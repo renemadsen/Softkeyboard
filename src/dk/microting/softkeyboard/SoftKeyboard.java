@@ -105,7 +105,6 @@ public class SoftKeyboard extends InputMethodService
         
         try {
 			connectToScanner();
-			setScannerIcon(scannerConnected);
 		} catch (Exception e) {
 			Log.d(TAG, e.getMessage());
 			e.printStackTrace();
@@ -132,44 +131,15 @@ public class SoftKeyboard extends InputMethodService
 		
 		if(action.equals(BluetoothDevice.ACTION_ACL_CONNECTED)) {
 			BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-			
 			Log.d(TAG, device.getName() + " (" + device.getAddress() + ")");
-			
-			if(scannerKey == null)
-			{ 
-				for(Key k : mCurKeyboard.getKeys())
-				{
-					if(k != null)
-					{
-						if(k.codes != null)
-						{
-							if(k.codes[0] == 0)
-							{
-								scannerKey = k;
-								scannerKey.icon = getResources().getDrawable(R.drawable.scanner);
-								mInputView.invalidate();
-								mInputView.invalidateAllKeys();
-							}
-						}
-					}
-				}
-			} else {
-				scannerKey.icon = getResources().getDrawable(R.drawable.scanner);
-				mInputView.invalidate();
-				mInputView.invalidateAllKeys();
-			}
+			scannerConnected = true;
+			setScannerIcon(scannerConnected);
 		} else if(action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED)) {
 			BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-			
 			Log.d(TAG, device.getName() + " (" + device.getAddress() + ")");
-			
-			if(scannerKey != null) {
-				scannerKey.icon = getResources().getDrawable(R.drawable.scanner_disconnected);
-				mInputView.invalidate();
-				mInputView.invalidateAllKeys();
-			}
+			scannerConnected = false;
+			setScannerIcon(scannerConnected);			
 		}
-		
 	}
 
 	/**
@@ -648,15 +618,9 @@ public class SoftKeyboard extends InputMethodService
 			} catch (Exception e) {
 				Log.d(TAG, e.getMessage());
 				e.printStackTrace();
-			}
-			
-			setScannerIcon(scannerConnected);
-			
+			}		
         } else if(primaryCode == 0 && scannerConnected) {
-        	checkConnection();
-        	
-        	setScannerIcon(scannerConnected);
-        	
+//        	checkConnection();
         	scannerThread.cancel();
         	
         }else {
@@ -912,6 +876,16 @@ public class SoftKeyboard extends InputMethodService
 	@Override
 	public void barcodeScannerConnect() {
 		Log.d(TAG, "scanner connected");
+		
+		scannerConnected = true;
+		
+		handler.post(new Runnable() {
+			@Override
+			public void run() {
+				Log.d(TAG, "Running the handler");
+				setScannerIcon(scannerConnected);
+			}
+		});
 	}
 	
 	public void connectToScanner() throws Exception
@@ -926,10 +900,9 @@ public class SoftKeyboard extends InputMethodService
 	        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID);
 	        	scannerThread = new ConnectedThread(scanner, SoftKeyboard.this);
 	        	scannerThread.start();
-	        	scannerConnected = true;
 	        }
 		} else {
-			setScannerIcon(true);
+			setScannerIcon(scannerConnected);
 		}
 	}
 	
@@ -964,13 +937,13 @@ public class SoftKeyboard extends InputMethodService
 	
 	public void setScannerIcon(boolean online)
 	{
-		if(scannerKey != null) {
+		Log.d(TAG, "Set Icon to " + (online ? "online" : "offline"));
+		
+		/*if(scannerKey != null) {
 			Log.d(TAG, "Have the key");
-			scannerKey.icon = getResources().getDrawable(online ? R.drawable.scanner : R.drawable.scanner_disconnected);
-			mInputView.invalidate();
-			mInputView.invalidateAllKeys();
-		} else if (mCurKeyboard != null) {
-			Log.d(TAG, "Do not have the key");
+			scannerKey.icon = getResources().getDrawable((online ? R.drawable.scanner : R.drawable.scanner_disconnected));
+		} else*/ if (mCurKeyboard != null) {
+			//Log.d(TAG, "Do not have the key");
 			for(Key k : mCurKeyboard.getKeys())
 			{
 				if(k != null)
@@ -980,15 +953,17 @@ public class SoftKeyboard extends InputMethodService
 						if(k.codes[0] == 0)
 						{
 							scannerKey = k;
-							scannerKey.icon = getResources().getDrawable(online ? R.drawable.scanner : R.drawable.scanner_disconnected);
-							mInputView.invalidate();
-							mInputView.invalidateAllKeys();
+							scannerKey.icon = getResources().getDrawable((online ? R.drawable.scanner : R.drawable.scanner_disconnected));
+							
 						}
 					}
 				}
 			}
-		} else {
+		} /*else {
 			Log.d(TAG, "Shouldn't do anything");
-		}
+		} */
+		
+		mInputView.invalidateAllKeys();
+		mInputView.invalidate();
 	}
 }
