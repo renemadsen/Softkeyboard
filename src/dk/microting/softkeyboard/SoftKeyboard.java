@@ -5,10 +5,6 @@ import android.R.attr;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.inputmethodservice.InputMethodService;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.Keyboard.Key;
@@ -20,7 +16,6 @@ import android.util.Log;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 
@@ -38,10 +33,7 @@ import dk.microting.softkeyboard.R;
  * a basic example for how you would get started writing an input method, to
  * be fleshed out as appropriate.
  */
-public class SoftKeyboard extends InputMethodService 
-        implements KeyboardView.OnKeyboardActionListener, BarcodeCallback {
-    static final boolean DEBUG = false;
-    
+public class SoftKeyboard extends InputMethodService implements KeyboardView.OnKeyboardActionListener, BarcodeCallback {
     /**
      * This boolean indicates the optional example code for performing
      * processing of hard keys in addition to regular text generation
@@ -81,8 +73,6 @@ public class SoftKeyboard extends InputMethodService
 	private Key scannerKey;
 	private Handler handler;
 	
-	private BroadcastReceiver mBTBroadCastReceiver;
-	
 	private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //UUID for generic SPP connections
     
     private String TAG = "SoftKeyboard";
@@ -91,7 +81,8 @@ public class SoftKeyboard extends InputMethodService
      * Main initialization of the input method component.  Be sure to call
      * to super class.
      */
-    @Override public void onCreate() {
+    @Override
+    public void onCreate() {
     	Log.d(TAG, "onCreate");
         super.onCreate();
         handler = new Handler();
@@ -109,51 +100,22 @@ public class SoftKeyboard extends InputMethodService
 			Log.d(TAG, e.getMessage());
 			e.printStackTrace();
 		}
-
-		IntentFilter mBTFilter = new IntentFilter();
-		mBTFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-		mBTFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-		
-		mBTBroadCastReceiver = new BroadcastReceiver() {
-			@Override
-			public void onReceive(Context context, Intent intent) {
-				handleEvent(intent);
-			}
-		};
-		
-		registerReceiver(mBTBroadCastReceiver, mBTFilter);
-		
     }
-    
-    protected void handleEvent(Intent intent) {
-    	String action = intent.getAction();
-		Log.d(TAG, action);
-		
-		if(action.equals(BluetoothDevice.ACTION_ACL_CONNECTED)) {
-			BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-			Log.d(TAG, device.getName() + " (" + device.getAddress() + ")");
-			scannerConnected = true;
-			setScannerIcon(scannerConnected);
-		} else if(action.equals(BluetoothDevice.ACTION_ACL_DISCONNECTED)) {
-			BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-			Log.d(TAG, device.getName() + " (" + device.getAddress() + ")");
-			scannerConnected = false;
-			setScannerIcon(scannerConnected);			
-		}
-	}
 
 	/**
      * This is the point where you can do all of your UI initialization.  It
      * is called after creation and any configuration change.
      */
-    @Override public void onInitializeInterface() {
+    @Override
+    public void onInitializeInterface() {
     	Log.d(TAG, "onInitializeInterface");
         if (mQwertyKeyboard != null) {
             // Configuration changes can happen after the keyboard gets recreated,
             // so we need to be able to re-build the keyboards if the available
             // space has changed.
             int displayWidth = getMaxWidth();
-            if (displayWidth == mLastDisplayWidth) return;
+            if (displayWidth == mLastDisplayWidth)
+            	return;
             mLastDisplayWidth = displayWidth;
         }
         mQwertyKeyboard = new LatinKeyboard(this, R.xml.qwerty);
@@ -167,10 +129,10 @@ public class SoftKeyboard extends InputMethodService
      * is displayed, and every time it needs to be re-created such as due to
      * a configuration change.
      */
-    @Override public View onCreateInputView() {
+    @Override
+    public View onCreateInputView() {
     	Log.d(TAG, "onCreateInputView");
-        mInputView = (KeyboardView) getLayoutInflater().inflate(
-                R.layout.input, null);
+        mInputView = (KeyboardView) getLayoutInflater().inflate(R.layout.input, null);
         mInputView.setOnKeyboardActionListener(this);
         mInputView.setKeyboard(mQwertyKeyboard);
         return mInputView;
@@ -180,7 +142,8 @@ public class SoftKeyboard extends InputMethodService
      * Called by the framework when your view for showing candidates needs to
      * be generated, like {@link #onCreateInputView}.
      */
-    @Override public View onCreateCandidatesView() {
+    @Override
+    public View onCreateCandidatesView() {
     	Log.d(TAG, "onCreateCandidatesView");
         mCandidateView = new CandidateView(this);
         mCandidateView.setService(this);
@@ -193,8 +156,10 @@ public class SoftKeyboard extends InputMethodService
      * bound to the client, and are now receiving all of the detailed information
      * about the target of our edits.
      */
-    @Override public void onStartInput(EditorInfo attribute, boolean restarting) {
+    @Override
+    public void onStartInput(EditorInfo attribute, boolean restarting) {
     	Log.d(TAG, "onStartInput");
+    	attribute.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI; //Disable the extracted UI, example, do not use fullscreen mode in survey pin code
         super.onStartInput(attribute, restarting);
         
         Log.d(TAG, "inputType: " + (attribute.inputType & InputType.TYPE_MASK_CLASS));
@@ -288,7 +253,8 @@ public class SoftKeyboard extends InputMethodService
      * This is called when the user is done editing a field.  We can use
      * this to reset our state.
      */
-    @Override public void onFinishInput() {
+    @Override
+    public void onFinishInput() {
     	Log.d(TAG, "onFinishInput");
         super.onFinishInput();
         
@@ -308,7 +274,8 @@ public class SoftKeyboard extends InputMethodService
         }
     }
     
-    @Override public void onStartInputView(EditorInfo attribute, boolean restarting) {
+    @Override
+    public void onStartInputView(EditorInfo attribute, boolean restarting) {
     	Log.d(TAG, "onStartInputView");
         super.onStartInputView(attribute, restarting);
         // Apply the selected keyboard to the input view.
@@ -326,25 +293,25 @@ public class SoftKeyboard extends InputMethodService
     /**
      * Deal with the editor reporting movement of its cursor.
      */
-    @Override public void onUpdateSelection(int oldSelStart, int oldSelEnd,
-            int newSelStart, int newSelEnd,
-            int candidatesStart, int candidatesEnd) {
-    	Log.d(TAG, "onUpdateSelection");
-        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
-                candidatesStart, candidatesEnd);
+//    @Override public void onUpdateSelection(int oldSelStart, int oldSelEnd,
+//            int newSelStart, int newSelEnd,
+//            int candidatesStart, int candidatesEnd) {
+//    	Log.d(TAG, "onUpdateSelection");
+//        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
+//                candidatesStart, candidatesEnd);
         
         // If the current selection in the text view changes, we should
         // clear whatever candidate text we have.
-        if (mComposing.length() > 0 && (newSelStart != candidatesEnd
-                || newSelEnd != candidatesEnd)) {
-            mComposing.setLength(0);
-            updateCandidates();
-            InputConnection ic = getCurrentInputConnection();
-            if (ic != null) {
-                ic.finishComposingText();
-            }
-        }
-    }
+//        if (mComposing.length() > 0 && (newSelStart != candidatesEnd
+//                || newSelEnd != candidatesEnd)) {
+//            mComposing.setLength(0);
+//            updateCandidates();
+//            InputConnection ic = getCurrentInputConnection();
+//            if (ic != null) {
+//                ic.finishComposingText();
+//            }
+//        }
+//    }
 
     /**
      * This tells us about completions that the editor has determined based
@@ -352,8 +319,8 @@ public class SoftKeyboard extends InputMethodService
      * to show the completions ourself, since the editor can not be seen
      * in that situation.
      */
-    @Override public void onDisplayCompletions(CompletionInfo[] completions) {
-    	Log.d(TAG, "onDisplayCompletions");
+//    @Override public void onDisplayCompletions(CompletionInfo[] completions) {
+//    	Log.d(TAG, "onDisplayCompletions");
 //        if (mCompletionOn) {
 //            mCompletions = completions;
 //            if (completions == null) {
@@ -368,7 +335,7 @@ public class SoftKeyboard extends InputMethodService
 //            }
 //            setSuggestions(stringList, true, true);
 //        }
-    }
+//    }
     
     /**
      * This translates incoming hard key events in to edit operations on an
@@ -410,7 +377,8 @@ public class SoftKeyboard extends InputMethodService
      * We get first crack at them, and can either resume them or let them
      * continue to the app.
      */
-    @Override public boolean onKeyDown(int keyCode, KeyEvent event) {
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
     	Log.d(TAG, "onKeyDown");
         switch (keyCode) {
             case KeyEvent.KEYCODE_BACK:
@@ -478,7 +446,8 @@ public class SoftKeyboard extends InputMethodService
      * We get first crack at them, and can either resume them or let them
      * continue to the app.
      */
-    @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
     	Log.d(TAG, "onKeyUp");
         // If we want to do transformations on text being entered with a hard
         // keyboard, we need to process the up events to update the meta key
@@ -612,17 +581,20 @@ public class SoftKeyboard extends InputMethodService
                 current.setShifted(false);
             }
         } else if(primaryCode == 0 && !scannerConnected) { 
-        	checkConnection();
-        	try {
-				connectToScanner();
-			} catch (Exception e) {
-				Log.d(TAG, e.getMessage());
-				e.printStackTrace();
-			}		
+        	Log.d(TAG, "Checking connection to the scanner!");
+        	if(!checkConnection())
+        	{
+        		Log.d(TAG, "No connection the scanner!");
+	        	try {
+					connectToScanner();
+				} catch (Exception e) {
+					Log.d(TAG, e.getMessage());
+					e.printStackTrace();
+				}
+        	}
         } else if(primaryCode == 0 && scannerConnected) {
-//        	checkConnection();
+        	Log.d(TAG, "Disconnecting the scanner!");
         	scannerThread.cancel();
-        	
         }else {
             handleCharacter(primaryCode, keyCodes);
         }
@@ -831,7 +803,7 @@ public class SoftKeyboard extends InputMethodService
     
     @Override
     public void onDestroy() {
-    	unregisterReceiver(mBTBroadCastReceiver);
+//    	unregisterReceiver(mBTBroadCastReceiver);
     }
 
 	@Override
@@ -890,18 +862,24 @@ public class SoftKeyboard extends InputMethodService
 	
 	public void connectToScanner() throws Exception
 	{
+		Log.d(TAG, "Connecting to scanner!");
 		if(!scannerConnected)
 		{
+			Log.d(TAG, "No scanner connected");
 			if(this.btAdapter.isDiscovering())
 				this.btAdapter.cancelDiscovery();
 			
+			pairedDevices = this.btAdapter.getBondedDevices();
+			
 	        for(BluetoothDevice bd : pairedDevices)
 	        {
+	        	Log.d(TAG, "Bounded dev");
 	        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID);
 	        	scannerThread = new ConnectedThread(scanner, SoftKeyboard.this);
 	        	scannerThread.start();
 	        }
 		} else {
+			Log.d(TAG, "We already have a scanner connected!");
 			setScannerIcon(scannerConnected);
 		}
 	}
@@ -932,7 +910,7 @@ public class SoftKeyboard extends InputMethodService
 		
 		setScannerIcon(scannerConnected);
 		
-		return true;
+		return scannerConnected;
 	}
 	
 	public void setScannerIcon(boolean online)
@@ -954,7 +932,6 @@ public class SoftKeyboard extends InputMethodService
 						{
 							scannerKey = k;
 							scannerKey.icon = getResources().getDrawable((online ? R.drawable.scanner : R.drawable.scanner_disconnected));
-							
 						}
 					}
 				}

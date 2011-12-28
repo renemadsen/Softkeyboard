@@ -17,7 +17,6 @@ public class ConnectedThread extends Thread {
 	private final InputStream mmInStream;
 	private final BarcodeCallback bcb;
 	
-	
 	private String receivedChars = "";
 	private Timer timerToSent;
 	private boolean timerIsRunning = false;
@@ -49,9 +48,9 @@ public class ConnectedThread extends Thread {
 		
 		try {
 			mmSocket.connect();
-		} catch (IOException e1) {
-			Log.d(TAG, e1.getMessage());
-			e1.printStackTrace();
+		} catch (IOException e) {
+			Log.d(TAG, e.getMessage());
+			e.printStackTrace();
 			bcb.barcodeScannerDisconnect();
 			run = false;
 		}
@@ -94,6 +93,7 @@ public class ConnectedThread extends Thread {
 	}
 
 	public void cancel() {
+		Log.d(TAG, "Cancelling the thread!");
 		try {
 			run = false;
 			mmSocket.close();
