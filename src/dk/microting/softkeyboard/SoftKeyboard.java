@@ -804,6 +804,12 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     @Override
     public void onDestroy() {
 //    	unregisterReceiver(mBTBroadCastReceiver);
+    	if(scannerThread != null)
+    	{
+	    	scannerThread.cancel();
+	    	scannerThread.stop();
+    	}
+    	super.onDestroy();
     }
 
 	@Override
