@@ -1,7 +1,20 @@
 
+/**
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*/
+
+/**
+*
+* @author Martin Jensby mj@microting.dk
+* @author <a target="_blank" href="http://www.microting.com/">www.microting.com</a>
+*
+*/
+
 package dk.microting.softkeyboard;
 
-import android.R.attr;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -10,7 +23,6 @@ import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.Keyboard.Key;
 import android.inputmethodservice.KeyboardView;
 import android.os.Handler;
-import android.text.InputType;
 import android.text.method.MetaKeyKeyListener;
 import android.util.Log;
 import android.view.KeyCharacterMap;
@@ -46,7 +58,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     
     private KeyboardView mInputView;
     private CandidateView mCandidateView;
-//    private CompletionInfo[] mCompletions;
     
     private StringBuilder mComposing = new StringBuilder();
     private boolean mPredictionOn;
@@ -162,9 +173,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     	attribute.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI; //Disable the extracted UI, example, do not use fullscreen mode in survey pin code
         super.onStartInput(attribute, restarting);
         
-        Log.d(TAG, "inputType: " + (attribute.inputType & InputType.TYPE_MASK_CLASS));
-        Log.d(TAG, "imeOptions: " + (attr.imeOptions & EditorInfo.IME_MASK_ACTION));
-        
         // Reset our state.  We want to do this even if restarting, because
         // the underlying state of the text editor could have changed in any way.
         mComposing.setLength(0);
@@ -177,7 +185,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         
         mPredictionOn = false;
         mCompletionOn = false;
-//        mCompletions = null;
         
         // We are now going to initialize our state based on the type of
         // text being edited.
@@ -196,44 +203,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 break;
                 
             case EditorInfo.TYPE_CLASS_TEXT:
-                // This is general text editing.  We will default to the
-                // normal alphabetic keyboard, and assume that we should
-                // be doing predictive text (showing candidates as the
-                // user types).
                 mCurKeyboard = mQwertyKeyboard;
-//                mPredictionOn = false;
-                
-                // We now look for a few special variations of text that will
-                // modify our behavior.
-                int variation = attribute.inputType &  EditorInfo.TYPE_MASK_VARIATION;
-                if (variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
-                        variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) {
-                    // Do not display predictions / what the user is typing
-                    // when they are entering a password.
-//                    mPredictionOn = false;
-                }
-                
-                if (variation == EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS 
-                        || variation == EditorInfo.TYPE_TEXT_VARIATION_URI
-                        || variation == EditorInfo.TYPE_TEXT_VARIATION_FILTER) {
-                    // Our predictions are not useful for e-mail addresses
-                    // or URIs.
-//                    mPredictionOn = false;
-                }
-                
-                if ((attribute.inputType&EditorInfo.TYPE_TEXT_FLAG_AUTO_COMPLETE) != 0) {
-                    // If this is an auto-complete text view, then our predictions
-                    // will not be shown and instead we will allow the editor
-                    // to supply their own.  We only show the editor's
-                    // candidates when in fullscreen mode, otherwise relying
-                    // own it displaying its own UI.
-//                    mPredictionOn = false;
-//                    mCompletionOn = isFullscreenMode();
-                }
-                
-                // We also want to look at the current state of the editor
-                // to decide whether our alphabetic keyboard should start out
-                // shifted.
                 updateShiftKeyState(attribute);
                 break;
                 
@@ -289,54 +259,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 			Log.d(TAG, "Failed to connect to scanner");
 		}
     }
-    
-    /**
-     * Deal with the editor reporting movement of its cursor.
-     */
-//    @Override public void onUpdateSelection(int oldSelStart, int oldSelEnd,
-//            int newSelStart, int newSelEnd,
-//            int candidatesStart, int candidatesEnd) {
-//    	Log.d(TAG, "onUpdateSelection");
-//        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
-//                candidatesStart, candidatesEnd);
-        
-        // If the current selection in the text view changes, we should
-        // clear whatever candidate text we have.
-//        if (mComposing.length() > 0 && (newSelStart != candidatesEnd
-//                || newSelEnd != candidatesEnd)) {
-//            mComposing.setLength(0);
-//            updateCandidates();
-//            InputConnection ic = getCurrentInputConnection();
-//            if (ic != null) {
-//                ic.finishComposingText();
-//            }
-//        }
-//    }
 
-    /**
-     * This tells us about completions that the editor has determined based
-     * on the current text in it.  We want to use this in fullscreen mode
-     * to show the completions ourself, since the editor can not be seen
-     * in that situation.
-     */
-//    @Override public void onDisplayCompletions(CompletionInfo[] completions) {
-//    	Log.d(TAG, "onDisplayCompletions");
-//        if (mCompletionOn) {
-//            mCompletions = completions;
-//            if (completions == null) {
-//                setSuggestions(null, false, false);
-//                return;
-//            }
-//            
-//            List<String> stringList = new ArrayList<String>();
-//            for (int i=0; i<(completions != null ? completions.length : 0); i++) {
-//                CompletionInfo ci = completions[i];
-//                if (ci != null) stringList.add(ci.getText().toString());
-//            }
-//            setSuggestions(stringList, true, true);
-//        }
-//    }
-    
     /**
      * This translates incoming hard key events in to edit operations on an
      * InputConnection.  It is only needed when using the
@@ -491,18 +414,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         }
     }
     
-//    /**
-//     * Helper to determine if a given character code is alphabetic.
-//     */
-//    private boolean isAlphabet(int code) {
-//    	Log.d(TAG, "isAlphabet");
-//        if (Character.isLetter(code)) {
-//            return true;
-//        } else {
-//            return false;
-//        }
-//    }
-    
     /**
      * Helper to send a key down / key up pair to the current editor.
      */
@@ -544,7 +455,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     }
 
     // Implementation of KeyboardViewListener
-
     public void onKey(int primaryCode, int[] keyCodes) {
     	Log.d(TAG, "onKey primaryCode " + primaryCode);
         if (isWordSeparator(primaryCode)) {
@@ -631,17 +541,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         }
     }
     
-    public void setSuggestions(List<String> suggestions, boolean completions,
-            boolean typedWordValid) {
+    public void setSuggestions(List<String> suggestions, boolean completions, boolean typedWordValid) {
     	Log.d(TAG, "setSuggestions");
-//        if (suggestions != null && suggestions.size() > 0) {
-//            setCandidatesViewShown(true);
-//        } else if (isExtractViewShown()) {
-//            setCandidatesViewShown(true);
-//        }
-//        if (mCandidateView != null) {
-//            mCandidateView.setSuggestions(suggestions, completions, typedWordValid);
-//        }
     }
     
     private void handleBackspace() {
@@ -654,7 +555,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
         
         if (length > 1) {
             mComposing.delete(length - 1, length);
-//            ic.setComposingText(mComposing, 1);
             ic.commitText(mComposing, 1);
             mComposing.setLength(0);
             updateCandidates();
@@ -702,17 +602,11 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
                 primaryCode = Character.toUpperCase(primaryCode);
             }
         }
-//        if (isAlphabet(primaryCode) && mPredictionOn) {
             mComposing.append((char) primaryCode);
-//            ic.setComposingText(mComposing, 1);
             ic.commitText(mComposing, 1);
             mComposing.setLength(0);
             updateShiftKeyState(getCurrentInputEditorInfo());
             updateCandidates();
-//        } else {
-//            getCurrentInputConnection().commitText(
-//                    String.valueOf((char) primaryCode), 1);
-//        }
     }
 
     private void handleClose() {
@@ -756,20 +650,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     
     public void pickSuggestionManually(int index) {
     	Log.d(TAG, "pickSuggestionManually");
-//        if (mCompletionOn && mCompletions != null && index >= 0
-//                && index < mCompletions.length) {
-//            CompletionInfo ci = mCompletions[index];
-//            getCurrentInputConnection().commitCompletion(ci);
-//            if (mCandidateView != null) {
-//                mCandidateView.clear();
-//            }
-//            updateShiftKeyState(getCurrentInputEditorInfo());
-//        } else if (mComposing.length() > 0) {
-//            // If we were generating candidate suggestions for the current
-//            // text, we would commit one of them here.  But for this sample,
-//            // we will just commit the current text.
-//            commitTyped(getCurrentInputConnection());
-//        }
     }
     
     public void swipeRight() {
@@ -803,7 +683,6 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
     
     @Override
     public void onDestroy() {
-//    	unregisterReceiver(mBTBroadCastReceiver);
     	if(scannerThread != null)
     	{
 	    	scannerThread.cancel();
@@ -923,10 +802,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 	{
 		Log.d(TAG, "Set Icon to " + (online ? "online" : "offline"));
 		
-		/*if(scannerKey != null) {
-			Log.d(TAG, "Have the key");
-			scannerKey.icon = getResources().getDrawable((online ? R.drawable.scanner : R.drawable.scanner_disconnected));
-		} else*/ if (mCurKeyboard != null) {
+		if (mCurKeyboard != null) {
 			//Log.d(TAG, "Do not have the key");
 			for(Key k : mCurKeyboard.getKeys())
 			{
@@ -942,9 +818,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 					}
 				}
 			}
-		} /*else {
-			Log.d(TAG, "Shouldn't do anything");
-		} */
+		}
 		
 		mInputView.invalidateAllKeys();
 		mInputView.invalidate();
