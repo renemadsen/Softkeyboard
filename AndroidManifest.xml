@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" 
+        package="dk.microting.softkeyboard">
+        
+   	<uses-sdk android:minSdkVersion="9" />
+	<uses-permission android:name="android.permission.BLUETOOTH" />
+	<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+        
+    <application android:label="@string/ime_name" android:icon="@drawable/scanner">
+        <service android:name="dk.microting.softkeyboard.SoftKeyboard"
+                android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data android:name="android.view.im" android:resource="@xml/method" />
+        </service>
+    </application>
+</manifest>
