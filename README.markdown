@@ -1,6 +1,10 @@
 Softkeyboard
 ============
 
+	This keyboard is loosely based on the google sample
+	http://developer.android.com/resources/samples/SoftKeyboard/index.html
+
+
 License
 -------
 
