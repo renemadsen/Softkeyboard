@@ -758,10 +758,15 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 			
 	        for(BluetoothDevice bd : pairedDevices)
 	        {
-	        	Log.d(TAG, "Bounded dev");
-	        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID);
-	        	scannerThread = new ConnectedThread(scanner, SoftKeyboard.this);
-	        	scannerThread.start();
+	        	Log.d(TAG, "Bounded dev (" + bd.getName() + ")");
+	        	if(bd.getName().toLowerCase().startsWith("cs30"))
+	        	{
+	        		Log.d(TAG, "We found a scanner from the bounded devs");
+        			Log.d(TAG, "Connecting!");
+		        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID);
+		        	scannerThread = new ConnectedThread(scanner, SoftKeyboard.this);
+		        	scannerThread.start();
+	        	}
 	        }
 		} else {
 			Log.d(TAG, "We already have a scanner connected!");
