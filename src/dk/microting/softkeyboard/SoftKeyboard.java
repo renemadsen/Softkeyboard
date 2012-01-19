@@ -766,6 +766,7 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 		        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID);
 		        	scannerThread = new ConnectedThread(scanner, SoftKeyboard.this);
 		        	scannerThread.start();
+		        	break;
 	        	}
 	        }
 		} else {
