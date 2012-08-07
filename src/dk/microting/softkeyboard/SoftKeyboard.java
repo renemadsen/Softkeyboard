@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import dk.microting.softkeyboard.R;
+import dk.microting.softkeyboard.autoupdateapk.AutoUpdateApk;
 
 /**
  * Example of writing an input method for a soft keyboard.  This code is
@@ -85,6 +86,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 	private Handler handler;
 	
 	private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //UUID for generic SPP connections
+	
+	private AutoUpdateApk aua;
     
     private String TAG = "SoftKeyboard";
     
@@ -111,6 +114,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 			Log.d(TAG, e.getMessage());
 			e.printStackTrace();
 		}
+		
+		this.aua = new AutoUpdateApk(this);
+		this.aua.checkUpdatesManually();
     }
 
 	/**
