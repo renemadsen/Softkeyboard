@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import dk.microting.softkeyboard.R;
+import dk.microting.softkeyboard.autoupdateapk.AutoUpdateApk;
 
 /**
  * Example of writing an input method for a soft keyboard.  This code is
@@ -85,6 +86,8 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 	private Handler handler;
 	
 	private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //UUID for generic SPP connections
+	
+	private AutoUpdateApk aua;
     
     private String TAG = "SoftKeyboard";
     
@@ -111,6 +114,9 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 			Log.d(TAG, e.getMessage());
 			e.printStackTrace();
 		}
+		
+		this.aua = new AutoUpdateApk(this);
+		this.aua.checkUpdatesManually();
     }
 
 	/**
@@ -758,10 +764,16 @@ public class SoftKeyboard extends InputMethodService implements KeyboardView.OnK
 			
 	        for(BluetoothDevice bd : pairedDevices)
 	        {
-	        	Log.d(TAG, "Bounded dev");
-	        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID);
-	        	scannerThread = new ConnectedThread(scanner, SoftKeyboard.this);
-	        	scannerThread.start();
+	        	Log.d(TAG, "Bounded dev (" + bd.getName() + ")");
+	        	if(bd.getName().toLowerCase().startsWith("cs30"))
+	        	{
+	        		Log.d(TAG, "We found a scanner from the bounded devs");
+        			Log.d(TAG, "Connecting!");
+		        	scanner = bd.createRfcommSocketToServiceRecord(MY_UUID);
+		        	scannerThread = new ConnectedThread(scanner, SoftKeyboard.this);
+		        	scannerThread.start();
+		        	break;
+	        	}
 	        }
 		} else {
 			Log.d(TAG, "We already have a scanner connected!");
