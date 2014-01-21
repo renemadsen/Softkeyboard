@@ -4,6 +4,6 @@
 *.apk
 .classpath
 /target
-/gen
+/gen/*
 /bin
 *~
